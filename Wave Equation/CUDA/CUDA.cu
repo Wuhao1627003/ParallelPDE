@@ -1,6 +1,26 @@
 #include "..\Sources\Background.h"
 
+#include <cuda.h>
+#include <cuda_runtime.h>
+
 using namespace std;
+
+__global__ void
+init_kernel(float* f, float* g) {
+
+    // compute overall index from position of thread in current block,
+    // and given the block we are in
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    __m128 scalar = _mm_set_ps(XPERIOD, XPERIOD, XPERIOD, XPERIOD);
+    __m128 init = _mm_set_ps(i + 3, i + 2, i + 1, i);
+    __m128 scaled = _mm_mul_ps(init, scalar);
+    __m128 sined = _mm_sin_ps(scaled);
+    __m128 cosined = _mm_cos_ps(scaled);
+    _mm_stream_ps(f + i, sined);
+    _mm_stream_ps(g + i, cosined);
+    result[index] = alpha * x[index] + y[index];
+}
 
 void init(float* f, float* g)
 {
@@ -32,12 +52,13 @@ void secondU(const float* origU, float* g)
     }
 }
 
-__m128 fac1 = _mm_set_ps(FAC1, FAC1, FAC1, FAC1);
-__m128 fac2 = _mm_set_ps(FAC2, FAC2, FAC2, FAC2);
-long long endIndex = DIST_STEPS - 4;
 //modifies thisU to store newest value
 void iterate(float* thisU, float* nextU)
 {
+    __m128 fac1 = _mm_set_ps(FAC1, FAC1, FAC1, FAC1);
+    __m128 fac2 = _mm_set_ps(FAC2, FAC2, FAC2, FAC2);
+    
+    // float *alwaysThisU = thisU;
     thisU[0] = FAC1 * nextU[0] + FAC2 * nextU[1] - thisU[0];
     thisU[1] = FAC1 * nextU[1] + FAC2 * (nextU[0] + nextU[2]) - thisU[1];
     thisU[2] = FAC1 * nextU[2] + FAC2 * (nextU[1] + nextU[3]) - thisU[2];
@@ -63,12 +84,24 @@ void iterate(float* thisU, float* nextU)
         __m128 finalThisU = _mm_sub_ps(nextUSum, streamThisU);
 
         _mm_stream_ps(thisU + i, finalThisU);
+        // thisU[i] = FAC1 * nextU[i] + FAC2 * ((i > 0 ? nextU[i - 1] : 0) + (i < DIST_STEPS - 1 ? nextU[i + 1] : 0)) - thisU[i];
     }
 
+    long long endIndex = DIST_STEPS - 4;
     thisU[endIndex] = FAC1 * nextU[endIndex] + FAC2 * (nextU[endIndex - 1] + nextU[endIndex + 1]) - thisU[endIndex];
     thisU[endIndex + 1] = FAC1 * nextU[endIndex + 1] + FAC2 * (nextU[endIndex] + nextU[endIndex + 2]) - thisU[endIndex + 1];
     thisU[endIndex + 2] = FAC1 * nextU[endIndex + 2] + FAC2 * (nextU[endIndex + 1] + nextU[endIndex + 3]) - thisU[endIndex + 2];
     thisU[endIndex + 3] = FAC1 * nextU[endIndex + 3] + FAC2 * nextU[endIndex + 2] - thisU[endIndex + 3];
+}
+
+template<class T>
+void printArray(T* vec)
+{
+    for (long long i = 0; i < DIST_STEPS; i ++)
+    {
+        cout << vec[i] << " ";
+    }
+    cout << endl;
 }
 
 int main()
