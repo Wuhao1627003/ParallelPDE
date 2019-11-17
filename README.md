@@ -90,7 +90,6 @@ Wrap-up: Evaluate performance of optimized SLA functions<br>
 
 <b>Dec 5 - 8</b>
 
-
 Implement: Main 2D Poisson equations solver
 
 Wrap-up: Create all relevant deliverables<br>
