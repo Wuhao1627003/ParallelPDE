@@ -4,7 +4,7 @@ using namespace std;
 
 void init(float* f, float* g)
 {
-    for (long long i = 0; i < DIST_STEPS; i++)
+    for (long i = 0; i < DIST_STEPS; i++)
     {
         f[i] = sin(i * XPERIOD);
         g[i] = cos(i * XPERIOD);
@@ -14,18 +14,19 @@ void init(float* f, float* g)
 //modifies g to store second column
 void secondU(const float* origU, float* g)
 {
-    for (long long i = 0; i < DIST_STEPS; i++)
+    for (long i = 0; i < DIST_STEPS; i++)
     {
         g[i] = origU[i] + g[i] * PERIOD;
     }
 }
 
 //modifies thisU to store newest value
-void iterate(float* thisU, const float* nextU)
+void iterate(float *thisU, const float *nextU)
 {
-    for (long long i = 0; i < DIST_STEPS; i++)
+    for (long i = 0; i < DIST_STEPS; i++)
     {
         thisU[i] = FAC1 * nextU[i] + FAC2 * ((i > 0 ? nextU[i - 1] : 0) + (i < DIST_STEPS - 1 ? nextU[i + 1] : 0)) - thisU[i];
+        
     }
 }
 
@@ -33,15 +34,28 @@ int main()
 {
     float *thisU = (float *)malloc(DIST_STEPS * sizeof(float));
     float *nextU = (float *)malloc(DIST_STEPS * sizeof(float));
-    double startTime =CycleTimer::currentSeconds();
+    double startInitTime = CycleTimer::currentSeconds();
     init(thisU, nextU);
     secondU(thisU, nextU);
-    for (long long t = 0; t < MAX_T; t ++) {
+    double endInitTime = CycleTimer::currentSeconds();
+    cout << "Init time: " << (endInitTime - startInitTime) << endl;
+    double startIterTime = CycleTimer::currentSeconds();
+    double startPartIterTime = startIterTime;
+    for (long t = 0; t < MAX_T; t++)
+    {
         iterate(thisU, nextU);
         swap(thisU, nextU);
+        if (t % (MAX_T >> 3) == 0 && t != 0)
+        {
+            double endPartIterTime = CycleTimer::currentSeconds();
+            cout << "Part Iter time: " << (endPartIterTime - startPartIterTime) << endl;
+            startPartIterTime = CycleTimer::currentSeconds();
+        }
     }
-    double endTime =CycleTimer::currentSeconds();
-    cout << endTime - startTime << endl;
+    double endIterTime = CycleTimer::currentSeconds();
+    cout << "Total Iter time: " << (endIterTime - startIterTime) << endl;
     //printArray(nextU);
+    free(thisU);
+    free(nextU);
     return 0;
 }

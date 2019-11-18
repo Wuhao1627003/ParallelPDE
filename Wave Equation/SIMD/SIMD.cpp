@@ -4,86 +4,99 @@ using namespace std;
 
 void init(float* f, float* g)
 {
-    __m128 scalar = _mm_set_ps(XPERIOD, XPERIOD, XPERIOD, XPERIOD);
-    for (long long i = 0; i < DIST_STEPS; i += 4)
-    {
-        //f[i] = sin(i * XPERIOD);
-        //g[i] = cos(i * XPERIOD);
-        __m128 init = _mm_set_ps(i + 3, i + 2, i + 1, i);
-        __m128 scaled = _mm_mul_ps(init, scalar);
-        __m128 sined = _mm_sin_ps(scaled);
-        __m128 cosined = _mm_cos_ps(scaled);
-        _mm_stream_ps(f + i, sined);
-        _mm_stream_ps(g + i, cosined);
+    //printf("F %p G %p\n", f, g);
+    __m256 scalar = _mm256_set_ps(XPERIOD, XPERIOD, XPERIOD, XPERIOD, XPERIOD, XPERIOD, XPERIOD, XPERIOD);
+    for (long i = 0; i < DIST_STEPS; i += 8)
+    {   
+        __m256 init = _mm256_set_ps(i + 7, i + 6, i + 5, i + 4, i + 3, i + 2, i + 1, i);
+        __m256 scaled = _mm256_mul_ps(init, scalar);
+        __m256 sined = _mm256_sin_ps(scaled);
+        __m256 cosined = _mm256_cos_ps(scaled);
+        _mm256_stream_ps(f + i, sined);
+        _mm256_stream_ps(g + i, cosined);
     }
 }
 
 //modifies g to store second column
 void secondU(const float* origU, float* g)
 {
-    __m128 scalar = _mm_set_ps(PERIOD, PERIOD, PERIOD, PERIOD);
-    for (long long i = 0; i < DIST_STEPS / 4; i++)
+    __m256 scalar = _mm256_set_ps(PERIOD, PERIOD, PERIOD, PERIOD, PERIOD, PERIOD, PERIOD, PERIOD);
+    for (long i = 0; i < DIST_STEPS; i += 8)
     {
-        __m128 streamU = _mm_load_ps(origU + 4 * i);
-        __m128 streamG = _mm_load_ps(g + 4 * i);
-        __m128 scaledG = _mm_mul_ps(streamG, scalar);
-        __m128 sum = _mm_add_ps(streamU, scaledG);
-        _mm_stream_ps(g + 4 * i, sum);
+        __m256 streamU = _mm256_load_ps(origU + i);
+        __m256 streamG = _mm256_load_ps(g + i);
+        __m256 scaledG = _mm256_mul_ps(streamG, scalar);
+        __m256 sum = _mm256_add_ps(streamU, scaledG);
+        _mm256_stream_ps(g + i, sum);
     }
 }
 
-__m128 fac1 = _mm_set_ps(FAC1, FAC1, FAC1, FAC1);
-__m128 fac2 = _mm_set_ps(FAC2, FAC2, FAC2, FAC2);
-long long endIndex = DIST_STEPS - 4;
+static __m256 fac1 = _mm256_set_ps(FAC1, FAC1, FAC1, FAC1, FAC1, FAC1, FAC1, FAC1);
+static __m256 fac2 = _mm256_set_ps(FAC2, FAC2, FAC2, FAC2, FAC2, FAC2, FAC2, FAC2);
+static long endIndex = DIST_STEPS - 8;
+
 //modifies thisU to store newest value
 void iterate(float* thisU, float* nextU)
 {
     thisU[0] = FAC1 * nextU[0] + FAC2 * nextU[1] - thisU[0];
-    thisU[1] = FAC1 * nextU[1] + FAC2 * (nextU[0] + nextU[2]) - thisU[1];
-    thisU[2] = FAC1 * nextU[2] + FAC2 * (nextU[1] + nextU[3]) - thisU[2];
-    thisU[3] = FAC1 * nextU[3] + FAC2 * (nextU[2] + nextU[4]) - thisU[3];
-
-    float *prev = nextU + 3;
-    float *curr = nextU + 4;
-    float *next = nextU + 5;
-    
-    for (long long i = 4; i < DIST_STEPS - 4; i += 4)
+    for (int i = 1; i < 8; i ++)
     {
-        long long j = i - 4;
-        __m128 streamNextUNext = _mm_load_ps(next + j);
-        __m128 streamNextUCurr = _mm_load_ps(curr + j);
-        __m128 streamNextUPrev = _mm_load_ps(prev + j);
-        __m128 streamThisU = _mm_load_ps(thisU + i);
+        thisU[i] = FAC1 * nextU[i] + FAC2 * (nextU[i - 1] + nextU[i + 1]) - thisU[i];
+    }
+    
+    for (long i = 8; i < DIST_STEPS - 8; i += 8)
+    {
+        __m256 streamNextUNext = _mm256_load_ps(nextU + i + 1);
+        __m256 streamNextUCurr = _mm256_load_ps(nextU + i);
+        __m256 streamNextUPrev = _mm256_load_ps(nextU + i - 1);
+        __m256 streamThisU = _mm256_load_ps(thisU + i);
 
-        __m128 fac1Prod = _mm_mul_ps(fac1, streamNextUCurr);
+        __m256 fac1Prod = _mm256_mul_ps(fac1, streamNextUCurr);
         string empty = "";
-        __m128 prevNextSum = _mm_add_ps(streamNextUPrev, streamNextUNext);
-        __m128 fac2Prod = _mm_mul_ps(fac2, prevNextSum);
-        __m128 nextUSum = _mm_add_ps(fac1Prod, fac2Prod);
-        __m128 finalThisU = _mm_sub_ps(nextUSum, streamThisU);
+        __m256 prevNextSum = _mm256_add_ps(streamNextUPrev, streamNextUNext);
+        __m256 fac2Prod = _mm256_mul_ps(fac2, prevNextSum);
+        __m256 nextUSum = _mm256_add_ps(fac1Prod, fac2Prod);
+        __m256 finalThisU = _mm256_sub_ps(nextUSum, streamThisU);
 
-        _mm_stream_ps(thisU + i, finalThisU);
+        _mm256_stream_ps(thisU + i, finalThisU);
     }
 
-    thisU[endIndex] = FAC1 * nextU[endIndex] + FAC2 * (nextU[endIndex - 1] + nextU[endIndex + 1]) - thisU[endIndex];
-    thisU[endIndex + 1] = FAC1 * nextU[endIndex + 1] + FAC2 * (nextU[endIndex] + nextU[endIndex + 2]) - thisU[endIndex + 1];
-    thisU[endIndex + 2] = FAC1 * nextU[endIndex + 2] + FAC2 * (nextU[endIndex + 1] + nextU[endIndex + 3]) - thisU[endIndex + 2];
-    thisU[endIndex + 3] = FAC1 * nextU[endIndex + 3] + FAC2 * nextU[endIndex + 2] - thisU[endIndex + 3];
+    for (int i = 0; i < 7; i ++)
+    {
+        thisU[endIndex + i] = FAC1 * nextU[endIndex + i] + FAC2 * (nextU[endIndex + i - 1] + nextU[endIndex + i + 1]) - thisU[endIndex + i];
+    }
+    thisU[endIndex + 7] = FAC1 * nextU[endIndex + 7] + FAC2 * nextU[endIndex + 6] - thisU[endIndex + 7];
+    
 }
 
 int main()
 {
-    float *thisU = (float *)malloc(DIST_STEPS * sizeof(float));
-    float *nextU = (float *)malloc(DIST_STEPS * sizeof(float));
-    double startTime =CycleTimer::currentSeconds();
+    float *startU0 = (float *)malloc((4 + DIST_STEPS) * sizeof(float));
+    float *startU1 = (float *)malloc((4 + DIST_STEPS) * sizeof(float));
+    float *thisU = startU0 + 4;
+    float *nextU = startU1 + 4;
+    double startInitTime = CycleTimer::currentSeconds();
     init(thisU, nextU);
     secondU(thisU, nextU);
-    for (long long t = 0; t < MAX_T; t ++) {
+    double endInitTime = CycleTimer::currentSeconds();
+    cout << "Init time: " << (endInitTime - startInitTime) << endl;
+    double startIterTime = CycleTimer::currentSeconds();
+    double startPartIterTime = startIterTime;
+    for (long t = 0; t < MAX_T; t++)
+    {
         iterate(thisU, nextU);
         swap(thisU, nextU);
+        if (t % (MAX_T >> 3) == 0 && t != 0)
+        {
+            double endPartIterTime = CycleTimer::currentSeconds();
+            cout << "Part Iter time: " << (endPartIterTime - startPartIterTime) << endl;
+            startPartIterTime = CycleTimer::currentSeconds();
+        }
     }
-    double endTime =CycleTimer::currentSeconds();
-    cout << endTime - startTime << endl;
+    double endIterTime = CycleTimer::currentSeconds();
+    cout << "Total Iter time: " << (endIterTime - startIterTime) << endl;
     //printArray(nextU);
+    free(startU0);
+    free(startU1);
     return 0;
 }
