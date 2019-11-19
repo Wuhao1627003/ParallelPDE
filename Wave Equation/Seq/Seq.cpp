@@ -2,7 +2,7 @@
 
 using namespace std;
 
-void init(float* f, float* g)
+void initSeq(float* f, float* g)
 {
     for (long i = 0; i < DIST_STEPS; i++)
     {
@@ -12,7 +12,7 @@ void init(float* f, float* g)
 }
 
 //modifies g to store second column
-void secondU(const float* origU, float* g)
+void secondUSeq(const float* origU, float* g)
 {
     for (long i = 0; i < DIST_STEPS; i++)
     {
@@ -21,7 +21,7 @@ void secondU(const float* origU, float* g)
 }
 
 //modifies thisU to store newest value
-void iterate(float *thisU, const float *nextU)
+void iterateSeq(float *thisU, const float *nextU)
 {
     for (long i = 0; i < DIST_STEPS; i++)
     {
@@ -30,20 +30,20 @@ void iterate(float *thisU, const float *nextU)
     }
 }
 
-int main()
+int mainSeq()
 {
     float *thisU = (float *)malloc(DIST_STEPS * sizeof(float));
     float *nextU = (float *)malloc(DIST_STEPS * sizeof(float));
     double startInitTime = CycleTimer::currentSeconds();
-    init(thisU, nextU);
-    secondU(thisU, nextU);
+    initSeq(thisU, nextU);
+    secondUSeq(thisU, nextU);
     double endInitTime = CycleTimer::currentSeconds();
     cout << "Init time: " << (endInitTime - startInitTime) << endl;
     double startIterTime = CycleTimer::currentSeconds();
     double startPartIterTime = startIterTime;
     for (long t = 0; t < MAX_T; t++)
     {
-        iterate(thisU, nextU);
+        iterateSeq(thisU, nextU);
         swap(thisU, nextU);
         if (t % (MAX_T >> 3) == 0 && t != 0)
         {

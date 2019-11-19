@@ -2,7 +2,7 @@
 
 using namespace std;
 
-void init(float* f, float* g)
+void initSIMD(float* f, float* g)
 {
     //printf("F %p G %p\n", f, g);
     __m256 scalar = _mm256_set_ps(XPERIOD, XPERIOD, XPERIOD, XPERIOD, XPERIOD, XPERIOD, XPERIOD, XPERIOD);
@@ -18,7 +18,7 @@ void init(float* f, float* g)
 }
 
 //modifies g to store second column
-void secondU(const float* origU, float* g)
+void secondUSIMD(const float* origU, float* g)
 {
     __m256 scalar = _mm256_set_ps(PERIOD, PERIOD, PERIOD, PERIOD, PERIOD, PERIOD, PERIOD, PERIOD);
     for (long i = 0; i < DIST_STEPS; i += 8)
@@ -36,7 +36,7 @@ static __m256 fac2 = _mm256_set_ps(FAC2, FAC2, FAC2, FAC2, FAC2, FAC2, FAC2, FAC
 static long endIndex = DIST_STEPS - 8;
 
 //modifies thisU to store newest value
-void iterate(float* thisU, float* nextU)
+void iterateSIMD(float* thisU, float* nextU)
 {
     thisU[0] = FAC1 * nextU[0] + FAC2 * nextU[1] - thisU[0];
     for (int i = 1; i < 8; i ++)
@@ -69,22 +69,22 @@ void iterate(float* thisU, float* nextU)
     
 }
 
-int main()
+int mainSIMD()
 {
-    float *startU0 = (float *)malloc((4 + DIST_STEPS) * sizeof(float));
-    float *startU1 = (float *)malloc((4 + DIST_STEPS) * sizeof(float));
-    float *thisU = startU0 + 4;
-    float *nextU = startU1 + 4;
+    float *startU0 = (float *)malloc(DIST_STEPS * sizeof(float));
+    float *startU1 = (float *)malloc(DIST_STEPS * sizeof(float));
+    float *thisU = startU0;
+    float *nextU = startU1;
     double startInitTime = CycleTimer::currentSeconds();
-    init(thisU, nextU);
-    secondU(thisU, nextU);
+    initSIMD(thisU, nextU);
+    secondUSIMD(thisU, nextU);
     double endInitTime = CycleTimer::currentSeconds();
     cout << "Init time: " << (endInitTime - startInitTime) << endl;
     double startIterTime = CycleTimer::currentSeconds();
     double startPartIterTime = startIterTime;
     for (long t = 0; t < MAX_T; t++)
     {
-        iterate(thisU, nextU);
+        iterateSIMD(thisU, nextU);
         swap(thisU, nextU);
         if (t % (MAX_T >> 3) == 0 && t != 0)
         {

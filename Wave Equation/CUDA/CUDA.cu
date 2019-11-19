@@ -3,6 +3,9 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
+#define THREADSPERBLOCK (1 << 2) 
+#define NUMBLOCKS (DIST_STEPS / THREADSPERBLOCK)
+
 using namespace std;
 
 __global__ void
@@ -40,14 +43,11 @@ void cudaWrap(float *startU0, float *startU1)
     cudaMemcpy(prev, startU0, (size_t)DIST_STEPS * sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(next, startU1, (size_t)DIST_STEPS * sizeof(float), cudaMemcpyHostToDevice);
 
-    const long threadsPerBlock = 1 << 2;
-    const long blocks = DIST_STEPS >> 2;
-
     double startInitTime = CycleTimer::currentSeconds();
 
-    init_kernel<<<blocks, threadsPerBlock>>>(prev, next);
+    init_kernel<<<NUMBLOCKS, THREADSPERBLOCK>>>(prev, next);
     cudaThreadSynchronize();
-    secondU_kernel<<<blocks, threadsPerBlock>>>(prev, next);
+    secondU_kernel<<<NUMBLOCKS, THREADSPERBLOCK>>>(prev, next);
     cudaThreadSynchronize();
 
     double endInitTime = CycleTimer::currentSeconds();
@@ -56,7 +56,7 @@ void cudaWrap(float *startU0, float *startU1)
     double startPartIterTime = startIterTime;
     for (long t = 0; t < MAX_T; t++)
     {
-        iterate_kernel<<<blocks, threadsPerBlock>>>(prev, next);
+        iterate_kernel<<<NUMBLOCKS, THREADSPERBLOCK>>>(prev, next);
         cudaThreadSynchronize();
         swap(prev, next);
         if (t % (MAX_T >> 3) == 0 && t != 0)
