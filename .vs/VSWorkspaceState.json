@@ -1,6 +1,12 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\Wave Equation",
+    "\\Wave Equation\\MSMPI",
+    "\\Wave Equation\\Seq",
+    "\\Wave Equation\\SIMD",
+    "\\Wave Equation\\Sources"
   ],
+  "SelectedNode": "\\Wave Equation\\MSMPI\\MPI.cpp",
   "PreviewInSolutionExplorer": false
 }

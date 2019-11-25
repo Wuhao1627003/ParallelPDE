@@ -1,4 +1,4 @@
-#include "..\Sources\Background.h"
+#include "../Sources/Background.h"
 
 using namespace std;
 
@@ -40,21 +40,14 @@ int mainSeq()
     double endInitTime = CycleTimer::currentSeconds();
     cout << "Init time: " << (endInitTime - startInitTime) << endl;
     double startIterTime = CycleTimer::currentSeconds();
-    double startPartIterTime = startIterTime;
     for (long t = 0; t < MAX_T; t++)
     {
         iterateSeq(thisU, nextU);
         swap(thisU, nextU);
-        if (t % (MAX_T >> 3) == 0 && t != 0)
-        {
-            double endPartIterTime = CycleTimer::currentSeconds();
-            cout << "Part Iter time: " << (endPartIterTime - startPartIterTime) << endl;
-            startPartIterTime = CycleTimer::currentSeconds();
-        }
     }
     double endIterTime = CycleTimer::currentSeconds();
     cout << "Total Iter time: " << (endIterTime - startIterTime) << endl;
-    //printArray(nextU);
+	printArray(nextU, 32);
     free(thisU);
     free(nextU);
     return 0;
