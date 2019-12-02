@@ -1,5 +1,0 @@
-﻿  MPI.cpp
-  OpenMP.cpp
-  ParallelPDE.vcxproj -> E:\Github Files\ParallelPDE\x64\Debug\ParallelPDE.exe
-E:\Github Files\ParallelPDE\Wave Equation\MSMPI\MPI.cpp(70): warning C6011: Dereferencing NULL pointer 'nextU'. 
-E:\Github Files\ParallelPDE\Wave Equation\OpenMP\OpenMP.cpp(7): warning C6993: Code analysis ignores OpenMP constructs; analyzing single-threaded code.

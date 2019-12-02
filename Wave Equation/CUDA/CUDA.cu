@@ -70,7 +70,7 @@ void cudaWrap(float *startU0, float *startU1)
     double endIterTime = CycleTimer::currentSeconds();
     cout << "Total Iter time: " << (endIterTime - startIterTime) << endl;
     cudaMemcpy(startU1, next, (size_t)DIST_STEPS * sizeof(float), cudaMemcpyDeviceToHost);
-    //printArray(startU1);
+    //printArray(startU1, DIST_STEPS);
     cudaFree(prev);
     cudaFree(next);
 

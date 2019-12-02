@@ -1,9 +1,0 @@
-Init time: 9.1e-06
-Part Iter time: 0.0281872
-Part Iter time: 0.0282452
-Part Iter time: 0.0283055
-Part Iter time: 0.0284914
-Part Iter time: 0.0282984
-Part Iter time: 0.0303846
-Part Iter time: 0.0325351
-Total Iter time: 0.242017

@@ -1,3 +1,6 @@
+#ifndef HEADER
+#define HEADER
+
 #include <cmath>
 #include <stdio.h>
 #include <iostream>
@@ -18,6 +21,7 @@
 #define MAX_T (long)((1 << 3) * TIME_STEPS)
 
 void printTest(int lineNum);
-void initSeq(float* f, float* g);
 void print256(__m256 floats);
 void printArray(float* vec, long length);
+
+#endif
