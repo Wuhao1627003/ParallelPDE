@@ -2,11 +2,10 @@
 
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <stdio.h>
 
-#define THREADSPERBLOCK (1 << 2) 
+#define THREADSPERBLOCK (1 << 12) 
 #define NUMBLOCKS (DIST_STEPS / THREADSPERBLOCK)
-
-using namespace std;
 
 __global__ void
 init_kernel(float* f, float* g) 
@@ -30,8 +29,34 @@ secondU_kernel(const float* origU, float* g)
 __global__ void
 iterate_kernel(float* thisU, const float* nextU)
 {
+    __shared__ float currBlock[THREADSPERBLOCK + 2];
+
+    currBlock[threadIdx.x + 1] = nextU[blockIdx.x * blockDim.x + threadIdx.x];
+
+    if (threadIdx.x == 0)
+    {
+        if (blockIdx.x != 0)
+        {
+            currBlock[0] = nextU[blockIdx.x * blockDim.x - 1];
+        }
+        else
+        {
+            currBlock[0] = 0;
+        }
+        if (blockIdx.x != NUMBLOCKS - 1)
+        {
+            currBlock[blockDim.x + 1] = nextU[(blockIdx.x + 1) * blockDim.x];
+        }
+        else
+        {
+            currBlock[blockDim.x + 1] = 0;
+        }
+    }
+    __syncthreads();
+
     long index = blockIdx.x * blockDim.x + threadIdx.x;
-    thisU[index] = FAC1 * nextU[index] + FAC2 * ((index > 0 ? nextU[index - 1] : 0) + (index < DIST_STEPS - 1 ? nextU[index + 1] : 0)) - thisU[index];
+    long i = threadIdx.x;
+    thisU[index] = FAC1 * currBlock[i + 1] + FAC2 * (currBlock[i] + currBlock[i + 2]) - thisU[index];
 }
 
 void cudaWrap(float *startU0, float *startU1)
@@ -43,37 +68,26 @@ void cudaWrap(float *startU0, float *startU1)
     cudaMemcpy(prev, startU0, (size_t)DIST_STEPS * sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(next, startU1, (size_t)DIST_STEPS * sizeof(float), cudaMemcpyHostToDevice);
 
-    double startInitTime = CycleTimer::currentSeconds();
+    double startTime = CycleTimer::currentSeconds();
 
     init_kernel<<<NUMBLOCKS, THREADSPERBLOCK>>>(prev, next);
     cudaThreadSynchronize();
     secondU_kernel<<<NUMBLOCKS, THREADSPERBLOCK>>>(prev, next);
     cudaThreadSynchronize();
 
-    double endInitTime = CycleTimer::currentSeconds();
-    cout << "Init time: " << (endInitTime - startInitTime) << endl;
-    double startIterTime = CycleTimer::currentSeconds();
-    double startPartIterTime = startIterTime;
     for (long t = 0; t < MAX_T; t++)
     {
-        iterate_kernel<<<NUMBLOCKS, THREADSPERBLOCK>>>(prev, next);
+        iterate_kernel<<<NUMBLOCKS, THREADSPERBLOCK, (THREADSPERBLOCK + 2) * sizeof(float)>>>(prev, next);
         cudaThreadSynchronize();
         swap(prev, next);
-        if (t % (MAX_T >> 3) == 0 && t != 0)
-        {
-            double endPartIterTime = CycleTimer::currentSeconds();
-            cout << "Part Iter time: " << (endPartIterTime - startPartIterTime) << endl;
-            startPartIterTime = CycleTimer::currentSeconds();
-        }
     }
     
-    double endIterTime = CycleTimer::currentSeconds();
-    cout << "Total Iter time: " << (endIterTime - startIterTime) << endl;
+    double endTime = CycleTimer::currentSeconds();
+    printf("%f\n", endTime - startTime);
     cudaMemcpy(startU1, next, (size_t)DIST_STEPS * sizeof(float), cudaMemcpyDeviceToHost);
     //printArray(startU1, DIST_STEPS);
     cudaFree(prev);
     cudaFree(next);
-
 }
 
 int main()
@@ -81,7 +95,8 @@ int main()
     float *thisU = (float *)calloc(DIST_STEPS, sizeof(float));
     float *nextU = (float *)calloc(DIST_STEPS, sizeof(float));
 
-    cudaWrap(thisU, nextU);
+    for (int i = 0; i < NUM_TESTS; i ++)
+        cudaWrap(thisU, nextU);
     
     free(thisU);
     free(nextU);

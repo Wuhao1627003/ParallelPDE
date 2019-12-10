@@ -1,0 +1,6 @@
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(459,5): warning MSB8028: The intermediate directory (x64\Release\) contains files shared from another project (Wave.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+icl: : warning #10006: ignoring unknown option '/module:stdIfcDir'
+  x64
+  Catastrophic error: cannot open source file "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.24.28314\ifc\x64": Permission denied
+  
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Platforms\x64\PlatformToolsets\Intel C++ Compiler 19.0\Toolset.targets(352,5): error MSB6006: "icl.exe" exited with code 4.

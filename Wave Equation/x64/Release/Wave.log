@@ -1,0 +1,3 @@
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(459,5): warning MSB8028: The intermediate directory (x64\Release\) contains files shared from another project (Wave Equation.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+  main.cpp
+  Wave.vcxproj -> S:\Github Files\ParallelPDE\Wave Equation\x64\Release\Wave.exe
